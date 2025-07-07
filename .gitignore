@@ -1,0 +1,7 @@
+.cache
+build
+test/release/build
+*.swp
+node_modules
+config.json
+vendor
