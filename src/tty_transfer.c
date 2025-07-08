@@ -15,8 +15,8 @@ enum tty_sequence_type { normal, csi, osc };
 struct tty_transfer_parser_ {
   int is_esc;
   enum tty_sequence_type seq_type;
-  char token[128]; // 1337;IOToken=<uuid-key>;<uuid-val>
-  char *token_back;
+  char osc_str[128]; // 1337;IOToken=<uuid-key>;<uuid-val>
+  char *osc_str_back;
   const char *key;
   const char *val;
 };
@@ -30,8 +30,8 @@ tty_transfer_parser *tty_transfer_parser_alloc() {
 void tty_transfer_parser_free(tty_transfer_parser *p) { free(p); }
 
 void tty_transfer_parser_reset(tty_transfer_parser *p) {
-  p->token[0] = '\0';
-  p->token_back = &p->token[0];
+  p->osc_str[0] = '\0';
+  p->osc_str_back = &p->osc_str[0];
   p->is_esc = 0;
   p->seq_type = normal;
   p->key = NULL;
@@ -147,8 +147,8 @@ static void tty_transfer_parser_parse_io_token(tty_transfer_parser *p) {
   const char *key = NULL;
   const char *val = NULL;
 
-  const char *it = p->token;
-  const char *end = p->token_back;
+  const char *it = p->osc_str;
+  const char *end = p->osc_str_back;
   if (!(it = parse_literal(it, end, "1337")))
     return;
 
@@ -178,13 +178,14 @@ static void tty_transfer_parser_parse_io_token(tty_transfer_parser *p) {
 }
 
 static void tty_transfer_parser_push_strchr(tty_transfer_parser *p, char c) {
-  if (p->token_back - &p->token[0] + 1 >= (sizeof(p->token) / sizeof(char))) {
+  if (p->osc_str_back - &p->osc_str[0] + 1 >=
+      (sizeof(p->osc_str) / sizeof(char))) {
     return;
   }
 
-  *p->token_back = c;
-  ++p->token_back;
-  *p->token_back = '\0';
+  *p->osc_str_back = c;
+  ++p->osc_str_back;
+  *p->osc_str_back = '\0';
 }
 
 static int tty_transfer_parser_feed_char(tty_transfer_parser *p, char c) {
@@ -216,8 +217,8 @@ static int tty_transfer_parser_feed_char(tty_transfer_parser *p, char c) {
     if (p->is_esc) {
       if (c == ']') {
         p->seq_type = osc;
-        p->token_back = &p->token[0];
-        p->token[0] = '\0';
+        p->osc_str_back = &p->osc_str[0];
+        p->osc_str[0] = '\0';
       } else if (c == '[') {
         p->seq_type = csi;
       }
@@ -254,7 +255,7 @@ const char *tty_transfer_parser_token_for_key(const tty_transfer_parser *p,
   if (strlen(key) != 36)
     return NULL;
 
-  if (p->token_back - p->key < 36)
+  if (p->osc_str_back - p->key < 36)
     return NULL;
 
   for (int i = 0; i < 36; ++i) {
