@@ -55,12 +55,15 @@ TTY_TRANSFER_API int tty_transfer_parser_feed(tty_transfer_parser *p,
 /**
  * Access a parsed I/O token
  * @param[in] p The parser
+ * @param[in] key The UUID key associated with the IO token request (like
+ * 68338148-030e-436c-89eb-9f905860f83b)
  * @returns A pointer to the parsed token, or NULL
  * @remarks The returned pointer is invalidated by calling
  * tty_transfer_parser_free
  */
 TTY_TRANSFER_API const char *
-tty_transfer_parser_token(const tty_transfer_parser *p);
+tty_transfer_parser_token_for_key(const tty_transfer_parser *p,
+                                  const char *key);
 
 #ifdef __cplusplus
 }

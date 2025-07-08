@@ -12,11 +12,12 @@
 #include "tty_transfer.h"
 
 // https://www.rfc-editor.org/rfc/rfc9562.html
-#define TEST_UUID "f81d4fae-7dec-11d0-a765-00a0c91e6bf6"
+#define UUID_KEY "68338148-030e-436c-89eb-9f905860f83b"
+#define UUID_VAL "f81d4fae-7dec-11d0-a765-00a0c91e6bf6"
 
 TEST(TtyTransferParser, ParsesToken) {
   const char *input = "foo"
-                      "\e]1337;" TEST_UUID "\e\\"
+                      "\e]1337;IOToken=" UUID_KEY ";" UUID_VAL "\e\\"
                       "\e[2;1R";
 
   tty_transfer_parser *p = tty_transfer_parser_alloc();
@@ -25,16 +26,16 @@ TEST(TtyTransferParser, ParsesToken) {
 
   EXPECT_TRUE(done);
 
-  std::string tok = tty_transfer_parser_token(p);
+  std::string tok = tty_transfer_parser_token_for_key(p, UUID_KEY);
 
-  EXPECT_EQ(tok, TEST_UUID);
+  EXPECT_EQ(tok, UUID_VAL);
 
   tty_transfer_parser_free(p);
 }
 
 TEST(TtyTransferParser, HasNoTokenAfterReset) {
   const char *input = "foo"
-                      "\e]1337;" TEST_UUID "\e\\"
+                      "\e]1337;IOToken=" UUID_KEY ";" UUID_VAL "\e\\"
                       "\e[2;1R";
 
   tty_transfer_parser *p = tty_transfer_parser_alloc();
@@ -43,14 +44,14 @@ TEST(TtyTransferParser, HasNoTokenAfterReset) {
 
   tty_transfer_parser_reset(p);
 
-  EXPECT_FALSE(tty_transfer_parser_token(p));
+  EXPECT_FALSE(tty_transfer_parser_token_for_key(p, UUID_KEY));
 
   tty_transfer_parser_free(p);
 }
 
-TEST(TtyTransferParser, TruncatesTokenIfLongerThanExpected) {
+TEST(TtyTransferParser, ExtraBytesAtEndOfKeyMakesInvalid) {
   const char *input = "foo"
-                      "\e]1337;" TEST_UUID "abcdefg"
+                      "\e]1337;IOToken=" UUID_KEY ";" UUID_VAL "abcdefg"
                       "\e\\"
                       "\e[2;1R";
 
@@ -58,23 +59,21 @@ TEST(TtyTransferParser, TruncatesTokenIfLongerThanExpected) {
   int done = tty_transfer_parser_feed(p, input, std::strlen(input));
   EXPECT_TRUE(done);
 
-  std::string tok = tty_transfer_parser_token(p);
-
-  EXPECT_EQ(tok, TEST_UUID);
+  EXPECT_FALSE(tty_transfer_parser_token_for_key(p, UUID_KEY));
 
   tty_transfer_parser_free(p);
 }
 
 TEST(TtyTransferParser, HasNoTokenWithoutExpectedPrefix) {
   const char *input = "foo"
-                      "\e]abcd;" TEST_UUID "\e\\"
+                      "\e]abcd;IOToken=" UUID_KEY ";" UUID_VAL "\e\\"
                       "\e[2;1R";
 
   tty_transfer_parser *p = tty_transfer_parser_alloc();
   int done = tty_transfer_parser_feed(p, input, std::strlen(input));
   EXPECT_TRUE(done);
 
-  EXPECT_FALSE(tty_transfer_parser_token(p));
+  EXPECT_FALSE(tty_transfer_parser_token_for_key(p, UUID_KEY));
 
   tty_transfer_parser_free(p);
 }

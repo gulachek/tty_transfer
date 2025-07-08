@@ -6,6 +6,7 @@
  * https://opensource.org/licenses/MIT.
  */
 #include "tty_transfer.h"
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -14,8 +15,10 @@ enum tty_sequence_type { normal, csi, osc };
 struct tty_transfer_parser_ {
   int is_esc;
   enum tty_sequence_type seq_type;
-  char token[42]; // 32 hex chars + 4 '-' + 1 null terminator + "1337;"
+  char token[128]; // 1337;IOToken=<uuid-key>;<uuid-val>
   char *token_back;
+  const char *key;
+  const char *val;
 };
 
 tty_transfer_parser *tty_transfer_parser_alloc() {
@@ -31,9 +34,148 @@ void tty_transfer_parser_reset(tty_transfer_parser *p) {
   p->token_back = &p->token[0];
   p->is_esc = 0;
   p->seq_type = normal;
+  p->key = NULL;
+  p->val = NULL;
 }
 
-static void tty_transfer_parser_parse_osc_uuid(tty_transfer_parser *p) {}
+static const char *parse_literal_nocase(const char *start, const char *end,
+                                        const char *lower_literal) {
+  const char *it = start;
+  while (it < end && isspace(*it)) {
+    ++it;
+  }
+
+  int len = strlen(lower_literal);
+  for (int i = 0; i < len; ++i) {
+    if (it >= end)
+      return NULL;
+    if (tolower(*it) != lower_literal[i])
+      return NULL;
+    ++it;
+  }
+
+  return it;
+}
+
+static const char *parse_literal(const char *start, const char *end,
+                                 const char *literal) {
+  const char *it = start;
+  while (it < end && isspace(*it)) {
+    ++it;
+  }
+
+  int len = strlen(literal);
+  for (int i = 0; i < len; ++i) {
+    if (it >= end)
+      return NULL;
+    if (*it != literal[i])
+      return NULL;
+    ++it;
+  }
+
+  return it;
+}
+
+static const char *parse_xdigits(const char *start, const char *end,
+                                 int ndigits) {
+  const char *it = start;
+  for (int i = 0; i < ndigits; ++i) {
+    if (it >= end)
+      return NULL;
+    if (!isxdigit(*it))
+      return NULL;
+    ++it;
+  }
+
+  return it;
+}
+
+static const char *parse_char(const char *start, const char *end, char c) {
+  if (start >= end)
+    return NULL;
+  if (*start != c)
+    return NULL;
+  return start + 1;
+}
+
+static const char *parse_uuid(const char *start, const char *end,
+                              const char **uuid_start) {
+  const char *it = start;
+  while (it < end && isspace(*it)) {
+    ++it;
+  }
+
+  if (uuid_start)
+    *uuid_start = it;
+
+  if (!(it = parse_xdigits(it, end, 8)))
+    return NULL;
+  if (!(it = parse_char(it, end, '-')))
+    return NULL;
+  if (!(it = parse_xdigits(it, end, 4)))
+    return NULL;
+  if (!(it = parse_char(it, end, '-')))
+    return NULL;
+  if (!(it = parse_xdigits(it, end, 4)))
+    return NULL;
+  if (!(it = parse_char(it, end, '-')))
+    return NULL;
+  if (!(it = parse_xdigits(it, end, 4)))
+    return NULL;
+  if (!(it = parse_char(it, end, '-')))
+    return NULL;
+  if (!(it = parse_xdigits(it, end, 12)))
+    return NULL;
+
+  return it;
+}
+
+static const char *parse_end_ws(const char *start, const char *end) {
+  const char *it = start;
+  while (it < end && isspace(*it))
+    ++it;
+
+  if (it != end)
+    return NULL;
+  return it;
+}
+
+static void tty_transfer_parser_parse_io_token(tty_transfer_parser *p) {
+  p->key = NULL;
+  p->val = NULL;
+
+  const char *key = NULL;
+  const char *val = NULL;
+
+  const char *it = p->token;
+  const char *end = p->token_back;
+  if (!(it = parse_literal(it, end, "1337")))
+    return;
+
+  if (!(it = parse_literal(it, end, ";")))
+    return;
+
+  if (!(it = parse_literal_nocase(it, end, "iotoken")))
+    return;
+
+  if (!(it = parse_literal(it, end, "=")))
+    return;
+
+  if (!(it = parse_uuid(it, end, &key)))
+    return;
+
+  if (!(it = parse_literal(it, end, ";")))
+    return;
+
+  if (!(it = parse_uuid(it, end, &val)))
+    return;
+
+  if (!(it = parse_end_ws(it, end)))
+    return;
+
+  p->key = key;
+  p->val = val;
+}
 
 static void tty_transfer_parser_push_strchr(tty_transfer_parser *p, char c) {
   if (p->token_back - &p->token[0] + 1 >= (sizeof(p->token) / sizeof(char))) {
@@ -50,7 +192,7 @@ static int tty_transfer_parser_feed_char(tty_transfer_parser *p, char c) {
     if (p->is_esc) {
       // ST
       if (c == '\\') {
-        tty_transfer_parser_parse_osc_uuid(p);
+        tty_transfer_parser_parse_io_token(p);
         p->seq_type = normal;
       } else {
         tty_transfer_parser_push_strchr(p, '\e');
@@ -101,10 +243,22 @@ int tty_transfer_parser_feed(tty_transfer_parser *p, const void *bytes,
   return 0;
 }
 
-const char *tty_transfer_parser_token(const tty_transfer_parser *p) {
-  if (strncmp("1337;", p->token, 5) == 0) {
-    return &p->token[5];
+const char *tty_transfer_parser_token_for_key(const tty_transfer_parser *p,
+                                              const char *key) {
+  if (!(p->key && p->val))
+    return NULL;
+
+  // expect 36 char UUID key
+  if (strlen(key) != 36)
+    return NULL;
+
+  if (p->token_back - p->key < 36)
+    return NULL;
+
+  for (int i = 0; i < 36; ++i) {
+    if (tolower(key[i]) != tolower(p->key[i]))
+      return NULL;
   }
 
-  return NULL;
+  return p->val;
 }
