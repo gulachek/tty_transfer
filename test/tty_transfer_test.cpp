@@ -176,3 +176,21 @@ TEST(TtyTransferParser, HasNoTokenWithoutExpectedPrefix) {
 
   tty_transfer_parser_free(p);
 }
+
+TEST(TtyTransferParser, FailsToFindTokenWithTruncatedUUIDKeyForLookup) {
+  const char *input = "\e]1337;IOToken=" UUID_KEY ";" UUID_VAL "\e\\"
+                      "\e[2;1R";
+
+  tty_transfer_parser *p = tty_transfer_parser_alloc();
+
+  int done = tty_transfer_parser_feed(p, input, std::strlen(input));
+
+  EXPECT_TRUE(done);
+
+  char key_trunc[] = UUID_KEY;
+  key_trunc[10] = '\0';
+
+  EXPECT_FALSE(tty_transfer_parser_token_for_key(p, key_trunc));
+
+  tty_transfer_parser_free(p);
+}
