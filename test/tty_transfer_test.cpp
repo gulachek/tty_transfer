@@ -94,6 +94,31 @@ TEST(TtyTransferParser, MatchesUUIDCaseInsensitively) {
   tty_transfer_parser_free(p);
 }
 
+TEST(TtyTransferParser, CanParseIncrementally) {
+  const char *input = "foo"
+                      "\e]1337;IOToken=" UUID_KEY ";" UUID_VAL "\e\\"
+                      "bar"
+                      "\e[2;1R";
+
+  tty_transfer_parser *p = tty_transfer_parser_alloc();
+
+  auto n = std::strlen(input);
+  for (int i = 0; i < n - 1; ++i) {
+    int nused = tty_transfer_parser_feed(p, &input[i], sizeof(char));
+    EXPECT_EQ(nused, 0);
+  }
+
+  int nused = tty_transfer_parser_feed(p, &input[n - 1], 1);
+
+  EXPECT_EQ(nused, 1);
+
+  std::string tok = tty_transfer_parser_token_for_key(p, UUID_KEY);
+
+  EXPECT_EQ(tok, UUID_VAL);
+
+  tty_transfer_parser_free(p);
+}
+
 TEST(TtyTransferParser, LastInputTokenWins) {
   const char *input = "foo"
                       "\e]1337;IOToken=" UUID_KEY ";" UUID_VAL "\e\\"
