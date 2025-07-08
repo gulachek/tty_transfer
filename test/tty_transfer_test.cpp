@@ -25,9 +25,9 @@ TEST(TtyTransferParser, ParsesToken) {
 
   tty_transfer_parser *p = tty_transfer_parser_alloc();
 
-  int done = tty_transfer_parser_feed(p, input, std::strlen(input));
+  int nused = tty_transfer_parser_feed(p, input, std::strlen(input));
 
-  EXPECT_TRUE(done);
+  EXPECT_EQ(nused, std::strlen(input));
 
   std::string tok = tty_transfer_parser_token_for_key(p, UUID_KEY);
 
@@ -45,9 +45,9 @@ TEST(TtyTransferParser, ParsesTokenWithSpacesInBetween) {
 
   tty_transfer_parser *p = tty_transfer_parser_alloc();
 
-  int done = tty_transfer_parser_feed(p, input, std::strlen(input));
+  int nused = tty_transfer_parser_feed(p, input, std::strlen(input));
 
-  EXPECT_TRUE(done);
+  EXPECT_EQ(nused, std::strlen(input));
 
   std::string tok = tty_transfer_parser_token_for_key(p, UUID_KEY);
 
@@ -64,9 +64,9 @@ TEST(TtyTransferParser, MatchesIOTokenCaseInsensitively) {
 
   tty_transfer_parser *p = tty_transfer_parser_alloc();
 
-  int done = tty_transfer_parser_feed(p, input, std::strlen(input));
+  int nused = tty_transfer_parser_feed(p, input, std::strlen(input));
 
-  EXPECT_TRUE(done);
+  EXPECT_EQ(nused, std::strlen(input));
 
   std::string tok = tty_transfer_parser_token_for_key(p, UUID_KEY);
 
@@ -83,9 +83,9 @@ TEST(TtyTransferParser, MatchesUUIDCaseInsensitively) {
 
   tty_transfer_parser *p = tty_transfer_parser_alloc();
 
-  int done = tty_transfer_parser_feed(p, input, std::strlen(input));
+  int nused = tty_transfer_parser_feed(p, input, std::strlen(input));
 
-  EXPECT_TRUE(done);
+  EXPECT_EQ(nused, std::strlen(input));
 
   std::string tok = tty_transfer_parser_token_for_key(p, UUID_KEY);
 
@@ -102,9 +102,9 @@ TEST(TtyTransferParser, LastInputTokenWins) {
 
   tty_transfer_parser *p = tty_transfer_parser_alloc();
 
-  int done = tty_transfer_parser_feed(p, input, std::strlen(input));
+  int nused = tty_transfer_parser_feed(p, input, std::strlen(input));
 
-  EXPECT_TRUE(done);
+  EXPECT_EQ(nused, std::strlen(input));
 
   EXPECT_FALSE(tty_transfer_parser_token_for_key(p, UUID_KEY));
 
@@ -123,9 +123,9 @@ TEST(TtyTransferParser, ExtraOSCBetweenTokenAndCSIInvalidatesToken) {
 
   tty_transfer_parser *p = tty_transfer_parser_alloc();
 
-  int done = tty_transfer_parser_feed(p, input, std::strlen(input));
+  int nused = tty_transfer_parser_feed(p, input, std::strlen(input));
 
-  EXPECT_TRUE(done);
+  EXPECT_EQ(nused, std::strlen(input));
 
   EXPECT_FALSE(tty_transfer_parser_token_for_key(p, UUID_KEY));
 
@@ -138,8 +138,8 @@ TEST(TtyTransferParser, HasNoTokenAfterReset) {
                       "\e[2;1R";
 
   tty_transfer_parser *p = tty_transfer_parser_alloc();
-  int done = tty_transfer_parser_feed(p, input, std::strlen(input));
-  EXPECT_TRUE(done);
+  int nused = tty_transfer_parser_feed(p, input, std::strlen(input));
+  EXPECT_EQ(nused, std::strlen(input));
 
   tty_transfer_parser_reset(p);
 
@@ -155,8 +155,8 @@ TEST(TtyTransferParser, ExtraBytesAtEndOfKeyMakesInvalid) {
                       "\e[2;1R";
 
   tty_transfer_parser *p = tty_transfer_parser_alloc();
-  int done = tty_transfer_parser_feed(p, input, std::strlen(input));
-  EXPECT_TRUE(done);
+  int nused = tty_transfer_parser_feed(p, input, std::strlen(input));
+  EXPECT_EQ(nused, std::strlen(input));
 
   EXPECT_FALSE(tty_transfer_parser_token_for_key(p, UUID_KEY));
 
@@ -169,8 +169,8 @@ TEST(TtyTransferParser, HasNoTokenWithoutExpectedPrefix) {
                       "\e[2;1R";
 
   tty_transfer_parser *p = tty_transfer_parser_alloc();
-  int done = tty_transfer_parser_feed(p, input, std::strlen(input));
-  EXPECT_TRUE(done);
+  int nused = tty_transfer_parser_feed(p, input, std::strlen(input));
+  EXPECT_EQ(nused, std::strlen(input));
 
   EXPECT_FALSE(tty_transfer_parser_token_for_key(p, UUID_KEY));
 
@@ -183,9 +183,9 @@ TEST(TtyTransferParser, FailsToFindTokenWithTruncatedUUIDKeyForLookup) {
 
   tty_transfer_parser *p = tty_transfer_parser_alloc();
 
-  int done = tty_transfer_parser_feed(p, input, std::strlen(input));
+  int nused = tty_transfer_parser_feed(p, input, std::strlen(input));
 
-  EXPECT_TRUE(done);
+  EXPECT_EQ(nused, std::strlen(input));
 
   char key_trunc[] = UUID_KEY;
   key_trunc[10] = '\0';
@@ -203,9 +203,9 @@ TEST(TtyTransferParser, IgnoresExtraCSI) {
 
   tty_transfer_parser *p = tty_transfer_parser_alloc();
 
-  int done = tty_transfer_parser_feed(p, input, std::strlen(input));
+  int nused = tty_transfer_parser_feed(p, input, std::strlen(input));
 
-  EXPECT_TRUE(done);
+  EXPECT_EQ(nused, std::strlen(input));
 
   std::string tok = tty_transfer_parser_token_for_key(p, UUID_KEY);
 

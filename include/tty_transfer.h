@@ -47,7 +47,8 @@ TTY_TRANSFER_API void tty_transfer_parser_reset(tty_transfer_parser *p);
  * @param[in] p The parser
  * @param[in] bytes The character bytes to parse
  * @param[in] nbytes The number of character bytes to parse
- * @returns 1 if done parsing the I/O token, 0 if more data is needed
+ * @returns Byte offset in bytes past the end of the sequence if done parsing
+ * the I/O token, 0 if more data is needed
  */
 TTY_TRANSFER_API int tty_transfer_parser_feed(tty_transfer_parser *p,
                                               const void *bytes, size_t nbytes);

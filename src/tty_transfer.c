@@ -237,13 +237,12 @@ static int tty_transfer_parser_feed_char(tty_transfer_parser *p, char c) {
   return 0;
 }
 
-// TODO if feeding multiple bytes, do we need to indicate where parsing ended?
 int tty_transfer_parser_feed(tty_transfer_parser *p, const void *bytes,
                              size_t nbytes) {
   for (int i = 0; i < nbytes; ++i) {
     char c = ((const char *)bytes)[i];
     if (tty_transfer_parser_feed_char(p, c))
-      return 1;
+      return i + 1;
   }
 
   return 0;
