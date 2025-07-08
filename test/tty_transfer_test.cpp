@@ -98,6 +98,7 @@ TEST(TtyTransferParser, CanParseIncrementally) {
   const char *input = "foo"
                       "\e]1337;IOToken=" UUID_KEY ";" UUID_VAL "\e\\"
                       "bar"
+                      "\e[2;1h" // not R
                       "\e[2;1R";
 
   tty_transfer_parser *p = tty_transfer_parser_alloc();
@@ -136,6 +137,20 @@ TEST(TtyTransferParser, LastInputTokenWins) {
   std::string tok = tty_transfer_parser_token_for_key(p, UUID_KEY2);
 
   EXPECT_EQ(tok, UUID_VAL);
+
+  tty_transfer_parser_free(p);
+}
+
+TEST(TtyTransferParser, CompletesParsingWithoutToken) {
+  const char *input = "\e[2;1R";
+
+  tty_transfer_parser *p = tty_transfer_parser_alloc();
+
+  int nused = tty_transfer_parser_feed(p, input, std::strlen(input));
+
+  EXPECT_EQ(nused, std::strlen(input));
+
+  EXPECT_FALSE(tty_transfer_parser_token_for_key(p, UUID_KEY));
 
   tty_transfer_parser_free(p);
 }
