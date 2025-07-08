@@ -175,6 +175,9 @@ static void tty_transfer_parser_parse_io_token(tty_transfer_parser *p) {
 
   p->key = key;
   p->val = val;
+
+  int offset = p->val - p->osc_str;
+  p->osc_str[offset + 36] = '\0'; // terminate val UUID str
 }
 
 static void tty_transfer_parser_push_strchr(tty_transfer_parser *p, char c) {
