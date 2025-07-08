@@ -194,3 +194,22 @@ TEST(TtyTransferParser, FailsToFindTokenWithTruncatedUUIDKeyForLookup) {
 
   tty_transfer_parser_free(p);
 }
+
+TEST(TtyTransferParser, IgnoresExtraCSI) {
+  const char *input = "\e[999;888k"
+                      "\e]1337;IOToken=" UUID_KEY ";" UUID_VAL "\e\\"
+                      "\e[123;145h"
+                      "\e[2;1R";
+
+  tty_transfer_parser *p = tty_transfer_parser_alloc();
+
+  int done = tty_transfer_parser_feed(p, input, std::strlen(input));
+
+  EXPECT_TRUE(done);
+
+  std::string tok = tty_transfer_parser_token_for_key(p, UUID_KEY);
+
+  EXPECT_EQ(tok, UUID_VAL);
+
+  tty_transfer_parser_free(p);
+}
