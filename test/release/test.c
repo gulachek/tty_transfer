@@ -1,4 +1,8 @@
 #include <stdio.h>
 #include <tty_transfer.h>
 
-int main() { return tty_transfer_foo() != 4; }
+int main() {
+  tty_transfer_parser p;
+  tty_transfer_parser_reset(&p);
+  return 0;
+}

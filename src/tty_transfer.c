@@ -8,8 +8,6 @@
 #include "tty_transfer.h"
 #include <string.h>
 
-int tty_transfer_foo() { return 4; }
-
 TTY_TRANSFER_API void tty_transfer_parser_reset(tty_transfer_parser *p) {
   p->token[0] = '\0';
   p->token_back = &p->token[0];

@@ -18,12 +18,6 @@
 extern "C" {
 #endif
 
-/**
- * Test function
- * @return 4
- */
-TTY_TRANSFER_API int tty_transfer_foo(void);
-
 enum tty_sequence_type { normal, csi, osc };
 
 typedef struct {
