@@ -216,6 +216,8 @@ static int tty_transfer_parser_feed_char(tty_transfer_parser *p, char c) {
     if (p->is_esc) {
       if (c == ']') {
         p->seq_type = osc;
+        p->token_back = &p->token[0];
+        p->token[0] = '\0';
       } else if (c == '[') {
         p->seq_type = csi;
       }

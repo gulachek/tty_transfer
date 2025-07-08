@@ -13,6 +13,7 @@
 
 // https://www.rfc-editor.org/rfc/rfc9562.html
 #define UUID_KEY "68338148-030e-436c-89eb-9f905860f83b"
+#define UUID_KEY2 "11111111-2222-3333-4444-555555555555"
 #define UUID_VAL "f81d4fae-7dec-11d0-a765-00a0c91e6bf6"
 
 TEST(TtyTransferParser, ParsesToken) {
@@ -27,6 +28,27 @@ TEST(TtyTransferParser, ParsesToken) {
   EXPECT_TRUE(done);
 
   std::string tok = tty_transfer_parser_token_for_key(p, UUID_KEY);
+
+  EXPECT_EQ(tok, UUID_VAL);
+
+  tty_transfer_parser_free(p);
+}
+
+TEST(TtyTransferParser, LastInputTokenWins) {
+  const char *input = "foo"
+                      "\e]1337;IOToken=" UUID_KEY ";" UUID_VAL "\e\\"
+                      "\e]1337;IOToken=" UUID_KEY2 ";" UUID_VAL "\e\\"
+                      "\e[2;1R";
+
+  tty_transfer_parser *p = tty_transfer_parser_alloc();
+
+  int done = tty_transfer_parser_feed(p, input, std::strlen(input));
+
+  EXPECT_TRUE(done);
+
+  EXPECT_FALSE(tty_transfer_parser_token_for_key(p, UUID_KEY));
+
+  std::string tok = tty_transfer_parser_token_for_key(p, UUID_KEY2);
 
   EXPECT_EQ(tok, UUID_VAL);
 
