@@ -55,6 +55,23 @@ TEST(TtyTransferParser, LastInputTokenWins) {
   tty_transfer_parser_free(p);
 }
 
+TEST(TtyTransferParser, ExtraOSCBetweenTokenAndCSIInvalidatesToken) {
+  const char *input = "foo"
+                      "\e]1337;IOToken=" UUID_KEY ";" UUID_VAL "\e\\"
+                      "\e]1337;AnothaOne\e\\"
+                      "\e[2;1R";
+
+  tty_transfer_parser *p = tty_transfer_parser_alloc();
+
+  int done = tty_transfer_parser_feed(p, input, std::strlen(input));
+
+  EXPECT_TRUE(done);
+
+  EXPECT_FALSE(tty_transfer_parser_token_for_key(p, UUID_KEY));
+
+  tty_transfer_parser_free(p);
+}
+
 TEST(TtyTransferParser, HasNoTokenAfterReset) {
   const char *input = "foo"
                       "\e]1337;IOToken=" UUID_KEY ";" UUID_VAL "\e\\"
