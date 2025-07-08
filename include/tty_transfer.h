@@ -18,14 +18,10 @@
 extern "C" {
 #endif
 
-enum tty_sequence_type { normal, csi, osc };
+typedef struct tty_transfer_parser_ tty_transfer_parser;
 
-typedef struct {
-  int is_esc;
-  enum tty_sequence_type seq_type;
-  char token[42]; // 32 hex chars + 4 '-' + 1 null terminator + "1337;"
-  char *token_back;
-} tty_transfer_parser;
+TTY_TRANSFER_API tty_transfer_parser *tty_transfer_parser_alloc();
+TTY_TRANSFER_API void tty_transfer_parser_free(tty_transfer_parser *p);
 
 TTY_TRANSFER_API void tty_transfer_parser_reset(tty_transfer_parser *p);
 

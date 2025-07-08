@@ -6,9 +6,27 @@
  * https://opensource.org/licenses/MIT.
  */
 #include "tty_transfer.h"
+#include <stdlib.h>
 #include <string.h>
 
-TTY_TRANSFER_API void tty_transfer_parser_reset(tty_transfer_parser *p) {
+enum tty_sequence_type { normal, csi, osc };
+
+struct tty_transfer_parser_ {
+  int is_esc;
+  enum tty_sequence_type seq_type;
+  char token[42]; // 32 hex chars + 4 '-' + 1 null terminator + "1337;"
+  char *token_back;
+};
+
+tty_transfer_parser *tty_transfer_parser_alloc() {
+  tty_transfer_parser *p = malloc(sizeof(tty_transfer_parser));
+  tty_transfer_parser_reset(p);
+  return p;
+}
+
+void tty_transfer_parser_free(tty_transfer_parser *p) { free(p); }
+
+void tty_transfer_parser_reset(tty_transfer_parser *p) {
   p->token[0] = '\0';
   p->token_back = &p->token[0];
   p->is_esc = 0;

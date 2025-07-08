@@ -19,14 +19,15 @@ TEST(TtyTransferParser, ParsesToken) {
                       "\e]1337;" TEST_UUID "\e\\"
                       "\e[2;1R";
 
-  tty_transfer_parser p;
-  tty_transfer_parser_reset(&p);
+  tty_transfer_parser *p = tty_transfer_parser_alloc();
 
-  int done = tty_transfer_parser_feed(&p, input, std::strlen(input));
+  int done = tty_transfer_parser_feed(p, input, std::strlen(input));
 
   EXPECT_TRUE(done);
 
-  std::string tok = tty_transfer_parser_token(&p);
+  std::string tok = tty_transfer_parser_token(p);
 
   EXPECT_EQ(tok, TEST_UUID);
+
+  tty_transfer_parser_free(p);
 }
