@@ -31,3 +31,19 @@ TEST(TtyTransferParser, ParsesToken) {
 
   tty_transfer_parser_free(p);
 }
+
+TEST(TtyTransferParser, HasNoTokenAfterReset) {
+  const char *input = "foo"
+                      "\e]1337;" TEST_UUID "\e\\"
+                      "\e[2;1R";
+
+  tty_transfer_parser *p = tty_transfer_parser_alloc();
+  int done = tty_transfer_parser_feed(p, input, std::strlen(input));
+  EXPECT_TRUE(done);
+
+  tty_transfer_parser_reset(p);
+
+  EXPECT_FALSE(tty_transfer_parser_token(p));
+
+  tty_transfer_parser_free(p);
+}
