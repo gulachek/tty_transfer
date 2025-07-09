@@ -5,6 +5,12 @@
  * license that can be found in the LICENSE file or at
  * https://opensource.org/licenses/MIT.
  */
+
+#if defined(__linux__)
+// enable cfmakeraw
+#define _DEFAULT_SOURCE
+#endif
+
 #include "tty_transfer.h"
 #include <ctype.h>
 #include <stdlib.h>

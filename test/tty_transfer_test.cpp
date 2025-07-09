@@ -5,6 +5,8 @@
  * license that can be found in the LICENSE file or at
  * https://opensource.org/licenses/MIT.
  */
+#include "tty_transfer/private/uuid.h"
+
 #include <cstdio>
 #include <cstring>
 #include <gtest/gtest.h>
@@ -12,9 +14,12 @@
 #include <sstream>
 #include <string>
 
-#include <os/log.h>
+// for forkpty
+#if defined(__APPLE__)
 #include <util.h>
-#include <uuid/uuid.h>
+#elif defined(__linux__)
+#include <pty.h>
+#endif
 
 #include "tty_transfer.h"
 
@@ -267,23 +272,19 @@ TEST(TtyTransferParser, IgnoresExtraCSI) {
 }
 
 TEST(TtyTransferRequestIoToken, ParsesTokenWhenAvailable) {
-  uuid_t tokenval;
-  uuid_generate_random(tokenval);
-  char host_token[37];
-  uuid_unparse(tokenval, host_token);
+  char host_token[TTY_TRANSFER_UUID_SIZE];
+  tty_transfer_uuid_generate(host_token, TTY_TRANSFER_UUID_SIZE);
 
   int pty_master;
   pid_t pid = forkpty(&pty_master, nullptr, nullptr, nullptr);
   EXPECT_NE(pid, -1);
 
   if (pid == 0) {
-    char token[37];
+    char token[TTY_TRANSFER_UUID_SIZE];
     auto ret = tty_transfer_request_io_token(token, sizeof(token));
     if (ret != TTY_TRANSFER_OK)
       std::exit(ret);
 
-    os_log(OS_LOG_DEFAULT, "TESTING: token '%{public}s'", token);
-    os_log(OS_LOG_DEFAULT, "TESTING: host_token '%{public}s'", host_token);
     if (std::strcmp(token, host_token) != 0)
       std::exit(1);
 
@@ -339,7 +340,5 @@ void send_token(int fd, const std::string &token_key, const char *token_val) {
      << "\e\\"
         "\e[1;2R";
   auto data = os.str();
-  os_log(OS_LOG_DEFAULT, "TESTING: sending key=%{public}s val=%{public}s",
-         token_key.c_str(), token_val);
   ::write(fd, data.data(), data.size());
 }

@@ -8,6 +8,7 @@
 
 // Assume posix!!!
 #include "tty_transfer.h"
+#include "tty_transfer/private/uuid.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -15,14 +16,10 @@
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
-#include <uuid/uuid.h>
-
-#include <os/log.h>
 
 tty_transfer_errno tty_transfer_request_io_token(char *token_buf,
                                                  size_t token_buf_size) {
   if (!isatty(STDIN_FILENO)) {
-    os_log_debug(OS_LOG_DEFAULT, "TESTING: stdin not tty");
     return TTY_TRANSFER_STDIN_NOT_TTY;
   }
 
@@ -34,21 +31,15 @@ tty_transfer_errno tty_transfer_request_io_token(char *token_buf,
   cfmakeraw(&tattr);
   tcsetattr(STDIN_FILENO, TCSADRAIN, &tattr);
 
-  uuid_t token_key;
-  uuid_generate_random(token_key);
-  char token_key_buf[37];
-  uuid_unparse(token_key, token_key_buf);
+  char token_key_buf[TTY_TRANSFER_UUID_SIZE];
+  tty_transfer_uuid_generate(token_key_buf, TTY_TRANSFER_UUID_SIZE);
 
   char buf[256];
   size_t bufsz = sizeof(buf) / sizeof(char);
   buf[0] = '\0';
 
-  strlcat(buf, "\e]1337;RequestTransferIOToken=", bufsz);
-  strlcat(buf, token_key_buf, bufsz);
-  strlcat(buf,
-          "\e\\"
-          "\e[6n",
-          bufsz);
+  snprintf(buf, bufsz, "\e]1337;RequestTransferIOToken=%s\e\\\e[6n",
+           token_key_buf);
 
   if (write(STDOUT_FILENO, buf, strlen(buf)) == -1)
     return TTY_TRANSFER_BAD_WRITE;
@@ -65,7 +56,6 @@ tty_transfer_errno tty_transfer_request_io_token(char *token_buf,
   clock_gettime(CLOCK_MONOTONIC, &start);
 
   while (1) {
-    os_log_debug(OS_LOG_DEFAULT, "TESTING: loop");
     struct timespec now;
 
     // TODO check retval
@@ -76,7 +66,6 @@ tty_transfer_errno tty_transfer_request_io_token(char *token_buf,
 
     if (ms_diff >= 500) {
       out = TTY_TRANSFER_TIMEOUT;
-      os_log_debug(OS_LOG_DEFAULT, "TESTING: timeout");
       break;
     }
 
@@ -108,12 +97,13 @@ tty_transfer_errno tty_transfer_request_io_token(char *token_buf,
     // done parsing
     if (tty_transfer_parser_feed(p, buf, nread)) {
       const char *token = tty_transfer_parser_token_for_key(p, token_key_buf);
-      os_log_debug(OS_LOG_DEFAULT, "TESTING: token %{public}s", token);
 
       if (token) {
-        int ncpy = strlcpy(token_buf, token, token_buf_size);
-        if (ncpy >= token_buf_size) {
+        strncpy(token_buf, token, token_buf_size);
+
+        if (strlen(token) >= token_buf_size) {
           out = TTY_TRANSFER_TOKEN_TRUNCATED;
+          token_buf[token_buf_size - 1] = '\0';
         }
       } else {
         out = TTY_TRANSFER_NO_TOKEN;

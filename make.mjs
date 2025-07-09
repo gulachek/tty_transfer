@@ -18,7 +18,7 @@ cli((make) => {
 
   const lib = d.addLibrary({
     name: "tty_transfer",
-    src: ["src/tty_transfer.c"],
+    src: ["src/tty_transfer.c", "src/uuid.c"],
   });
 
   const gtest = d.findPackage("gtest_main");
