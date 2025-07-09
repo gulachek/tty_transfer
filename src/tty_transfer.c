@@ -267,3 +267,9 @@ const char *tty_transfer_parser_token_for_key(const tty_transfer_parser *p,
 
   return p->val;
 }
+
+#if defined(__APPLE__) || defined(__linux__)
+#include "tty_transfer/private/impl/tty_transfer_posix.c"
+#else
+#error "Platform not supported!"
+#endif

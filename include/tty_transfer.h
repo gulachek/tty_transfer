@@ -66,6 +66,42 @@ TTY_TRANSFER_API const char *
 tty_transfer_parser_token_for_key(const tty_transfer_parser *p,
                                   const char *key);
 
+/**
+ * Constants representing error conditions
+ */
+typedef enum tty_transfer_errno {
+  /** Success. No error */
+  TTY_TRANSFER_OK = 0,
+  /** stdin is not a tty */
+  TTY_TRANSFER_STDIN_NOT_TTY = 1,
+  /** stdout is not a tty */
+  TTY_TRANSFER_STDOUT_NOT_TTY = 2,
+  /** stdin and stdout represent different devices */
+  TTY_TRANSFER_STDIO_MISMATCH = 3,
+  /** bad write */
+  TTY_TRANSFER_BAD_WRITE = 4,
+  /** bad read */
+  TTY_TRANSFER_BAD_READ = 5,
+  /** bad memory allocation */
+  TTY_TRANSFER_BAD_ALLOC = 6,
+  /** no I/O token received from host tty */
+  TTY_TRANSFER_NO_TOKEN = 6,
+  /** token was truncated */
+  TTY_TRANSFER_TOKEN_TRUNCATED = 7,
+  /** timed out */
+  TTY_TRANSFER_TIMEOUT = 8,
+} tty_transfer_errno;
+
+/**
+ * Synchronously request an IO token to transfer the TTY
+ * @param[out] token_buf The buffer to hold the null terminated output token
+ * @param[in] token_buf_size The size of token_buf in chars. This must be at
+ * least 37 to hold a null terminated formatted UUID
+ * @returns An error code constant
+ */
+TTY_TRANSFER_API tty_transfer_errno
+tty_transfer_request_io_token(char *token_buf, size_t token_buf_size);
+
 #ifdef __cplusplus
 }
 #endif
