@@ -9,8 +9,8 @@
 #include <cstring>
 #include <gtest/gtest.h>
 #include <regex>
+#include <sstream>
 #include <string>
-#include <strstream>
 
 #include <os/log.h>
 #include <util.h>
